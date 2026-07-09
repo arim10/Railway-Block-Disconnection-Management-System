@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Railway Block & Disconnection Management System - Offline PWA">
+    <meta name="theme-color" content="#0d6efd">
+    <title>Railway Block & Disconnection Management System</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230d6efd' width='192' height='192'/><text x='50%' y='50%' font-size='80' fill='white' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>RB</text></svg>">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-train"></i> Railway Block Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-tab="dashboard">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="data-entry">
+                            <i class="fas fa-plus-circle"></i> New Entry
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-tab="data-table">
+                            <i class="fas fa-table"></i> All Records
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools"></i> Tools
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" id="exportExcel"><i class="fas fa-file-excel"></i> Export to Excel</a></li>
+                            <li><a class="dropdown-item" href="#" id="printBtn"><i class="fas fa-print"></i> Print</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="backupBtn"><i class="fas fa-download"></i> Backup JSON</a></li>
+                            <li><a class="dropdown-item" href="#" id="restoreBtn"><i class="fas fa-upload"></i> Restore JSON</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="clearDataBtn"><i class="fas fa-trash"></i> Clear All Data</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <span class="badge bg-success ms-2" id="syncStatus">
+                            <i class="fas fa-wifi"></i> Offline
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container-fluid py-4">
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content">
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Total Records</h6>
+                            <h3 id="totalRecords">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Completed</h6>
+                            <h3 id="completedRecords">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Pending</h6>
+                            <h3 id="pendingRecords">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Total Duration</h6>
+                            <h3 id="totalDuration">0h</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Charts Area -->
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Records by Department</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="departmentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Records by Type of Work</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="workTypeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Entry Form Tab -->
+        <div id="data-entry" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Railway Block & Disconnection Entry Form</h4>
+                </div>
+                <div class="card-body">
+                    <form id="entryForm">
+                        <!-- DISC_ID (Auto-generated, Read-only) -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="DISC_ID" class="form-label">DISC ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="DISC_ID" name="DISC_ID" readonly>
+                                <small class="text-muted">Auto-generated</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="STN" class="form-label">Station (STN) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="STN" name="STN" required>
+                            </div>
+                        </div>
+
+                        <!-- DATE_DISC and STN_DN_NO -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="DATE_DISC" class="form-label">Disconnection Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="DATE_DISC" name="DATE_DISC" required>
+                                <small class="invalid-feedback">Please enter a valid date</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="STN_DN_NO" class="form-label">Station DN No <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="STN_DN_NO" name="STN_DN_NO" required>
+                            </div>
+                        </div>
+
+                        <!-- PURPOSE and TIME_APPLIED -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="PURPOSE" class="form-label">Purpose <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="PURPOSE" name="PURPOSE" rows="2" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="TIME_APPLIED" class="form-label">Time Applied <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="TIME_APPLIED" name="TIME_APPLIED" required>
+                            </div>
+                        </div>
+
+                        <!-- DURATION_ASKED and ALLOWED_FM -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="DURATION_ASKED" class="form-label">Duration Asked (minutes) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="DURATION_ASKED" name="DURATION_ASKED" min="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="ALLOWED_FM" class="form-label">Allowed From <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="ALLOWED_FM" name="ALLOWED_FM" required>
+                            </div>
+                        </div>
+
+                        <!-- ALLOWED_TO and RECONNECTION_TIME -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="ALLOWED_TO" class="form-label">Allowed To <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="ALLOWED_TO" name="ALLOWED_TO" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="RECONNECTION_TIME" class="form-label">Reconnection Time</label>
+                                <input type="time" class="form-control" id="RECONNECTION_TIME" name="RECONNECTION_TIME">
+                            </div>
+                        </div>
+
+                        <!-- DURATION AVAILED (Auto-calculated) -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="DURATION_AVAILED" class="form-label">Duration Availed (minutes) <span class="text-info">Auto-calculated</span></label>
+                                <input type="text" class="form-control" id="DURATION_AVAILED" name="DURATION_AVAILED" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="delay" class="form-label">Delay (minutes) <span class="text-info">Auto-calculated</span></label>
+                                <input type="text" class="form-control" id="delay" name="delay" readonly>
+                            </div>
+                        </div>
+
+                        <!-- REMARK and DONE_BY -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="REMARK" class="form-label">Remark</label>
+                                <textarea class="form-control" id="REMARK" name="REMARK" rows="2"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="DONE_BY" class="form-label">Done By <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="DONE_BY" name="DONE_BY" required>
+                            </div>
+                        </div>
+
+                        <!-- MEGA_BLOCK and GEAR_NAME -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="MEGA_BLOCK" class="form-label">Mega Block</label>
+                                <select class="form-select" id="MEGA_BLOCK" name="MEGA_BLOCK">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="GEAR_NAME" class="form-label">Gear Name</label>
+                                <input type="text" class="form-control" id="GEAR_NAME" name="GEAR_NAME">
+                            </div>
+                        </div>
+
+                        <!-- GEAR_NUMBER_S&T and SECTION -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="GEAR_NUMBER" class="form-label">Gear Number (S&T)</label>
+                                <input type="text" class="form-control" id="GEAR_NUMBER" name="GEAR_NUMBER">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="SECTION" class="form-label">Section</label>
+                                <input type="text" class="form-control" id="SECTION" name="SECTION">
+                            </div>
+                        </div>
+
+                        <!-- TIME_SUBMISSION and BLOCK_WINDOW_FM -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="TIME_SUBMISSION" class="form-label">Time Submission</label>
+                                <input type="time" class="form-control" id="TIME_SUBMISSION" name="TIME_SUBMISSION">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="BLOCK_WINDOW_FM" class="form-label">Block Window From</label>
+                                <input type="time" class="form-control" id="BLOCK_WINDOW_FM" name="BLOCK_WINDOW_FM">
+                            </div>
+                        </div>
+
+                        <!-- BLOCK_WINDOW_TO and TYPE_OF_WORK -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="BLOCK_WINDOW_TO" class="form-label">Block Window To</label>
+                                <input type="time" class="form-control" id="BLOCK_WINDOW_TO" name="BLOCK_WINDOW_TO">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="TYPE_OF_WORK" class="form-label">Type of Work <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="TYPE_OF_WORK" name="TYPE_OF_WORK" required>
+                            </div>
+                        </div>
+
+                        <!-- LINE_EFFECTED and AGREE_NOT_AGREE -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="LINE_EFFECTED" class="form-label">Line Effected</label>
+                                <input type="text" class="form-control" id="LINE_EFFECTED" name="LINE_EFFECTED">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="AGREE_NOT_AGREE" class="form-label">Agree/Not Agree</label>
+                                <select class="form-select" id="AGREE_NOT_AGREE" name="AGREE_NOT_AGREE">
+                                    <option value="">-- Select --</option>
+                                    <option value="Agree">Agree</option>
+                                    <option value="Not Agree">Not Agree</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- APPLIED_NOT_APPLIED_DONE and SITE_DETAIL_REPERCUSSIONS -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="APPLIED_NOT_APPLIED_DONE" class="form-label">Applied/Not Applied/Done</label>
+                                <select class="form-select" id="APPLIED_NOT_APPLIED_DONE" name="APPLIED_NOT_APPLIED_DONE">
+                                    <option value="">-- Select --</option>
+                                    <option value="Applied">Applied</option>
+                                    <option value="Not Applied">Not Applied</option>
+                                    <option value="Done">Done</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="SITE_DETAIL_REPERCUSSIONS" class="form-label">Site Detail Repercussions</label>
+                                <textarea class="form-control" id="SITE_DETAIL_REPERCUSSIONS" name="SITE_DETAIL_REPERCUSSIONS" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- TYPE_OF_BLOCK and SR_NO_BLANK -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="TYPE_OF_BLOCK" class="form-label">Type of Block</label>
+                                <input type="text" class="form-control" id="TYPE_OF_BLOCK" name="TYPE_OF_BLOCK">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="SR_NO_BLANK" class="form-label">SR No (Blank)</label>
+                                <input type="text" class="form-control" id="SR_NO_BLANK" name="SR_NO_BLANK">
+                            </div>
+                        </div>
+
+                        <!-- DEPARTMENT and FROM_TO_STN_BLANK -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="DEPARTMENT" class="form-label">Department <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="DEPARTMENT" name="DEPARTMENT" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="FROM_TO_STN_BLANK" class="form-label">From/To Station (Blank)</label>
+                                <input type="text" class="form-control" id="FROM_TO_STN_BLANK" name="FROM_TO_STN_BLANK">
+                            </div>
+                        </div>
+
+                        <!-- BOARD_BLANK and ALLOWED_BLANK -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="BOARD_BLANK" class="form-label">Board (Blank)</label>
+                                <input type="text" class="form-control" id="BOARD_BLANK" name="BOARD_BLANK">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="ALLOWED_BLANK" class="form-label">Allowed (Blank)</label>
+                                <input type="text" class="form-control" id="ALLOWED_BLANK" name="ALLOWED_BLANK">
+                            </div>
+                        </div>
+
+                        <!-- JSG_BD_OPTG and GOOD_WORK -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="JSG_BD_OPTG" class="form-label">JSG BD OPTG For Copy</label>
+                                <input type="text" class="form-control" id="JSG_BD_OPTG" name="JSG_BD_OPTG">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="GOOD_WORK" class="form-label">Good Work</label>
+                                <select class="form-select" id="GOOD_WORK" name="GOOD_WORK">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- NAKLI_BOARD and NAKLI_STN_TO -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="NAKLI_BOARD" class="form-label">Nakli Board</label>
+                                <input type="text" class="form-control" id="NAKLI_BOARD" name="NAKLI_BOARD">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="NAKLI_STN_TO" class="form-label">Nakli Station To</label>
+                                <input type="text" class="form-control" id="NAKLI_STN_TO" name="NAKLI_STN_TO">
+                            </div>
+                        </div>
+
+                        <!-- NAKLI_KM_FM and NAKLI_KM_TO -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="NAKLI_KM_FM" class="form-label">Nakli KM From</label>
+                                <input type="number" class="form-control" id="NAKLI_KM_FM" name="NAKLI_KM_FM" step="0.01">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="NAKLI_KM_TO" class="form-label">Nakli KM To</label>
+                                <input type="number" class="form-control" id="NAKLI_KM_TO" name="NAKLI_KM_TO" step="0.01">
+                            </div>
+                        </div>
+
+                        <!-- RESOURCES, DEPT, and SPL_RTN -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="RESOURCES" class="form-label">Resources</label>
+                                <textarea class="form-control" id="RESOURCES" name="RESOURCES" rows="2"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="DEPT" class="form-label">Dept</label>
+                                <input type="text" class="form-control" id="DEPT" name="DEPT">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="SPL_RTN" class="form-label">SPL RTN</label>
+                                <input type="text" class="form-control" id="SPL_RTN" name="SPL_RTN">
+                            </div>
+                        </div>
+
+                        <!-- Form Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Record
+                                </button>
+                                <button type="reset" class="btn btn-secondary">
+                                    <i class="fas fa-redo"></i> Clear Form
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Tab -->
+        <div id="data-table" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="mb-0">All Records</h4>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search records...">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="filterDepartment" class="form-label">Filter by Department</label>
+                            <select class="form-select" id="filterDepartment">
+                                <option value="">All Departments</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterTypeOfWork" class="form-label">Filter by Type of Work</label>
+                            <select class="form-select" id="filterTypeOfWork">
+                                <option value="">All Types</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterStatus" class="form-label">Filter by Status</label>
+                            <select class="form-select" id="filterStatus">
+                                <option value="">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Applied">Applied</option>
+                                <option value="Done">Done</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="sortBy" class="form-label">Sort By</label>
+                            <select class="form-select" id="sortBy">
+                                <option value="date-desc">Latest First</option>
+                                <option value="date-asc">Oldest First</option>
+                                <option value="disc-asc">DISC ID (A-Z)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="recordsTable">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>DISC ID</th>
+                                    <th>Station</th>
+                                    <th>Date</th>
+                                    <th>Department</th>
+                                    <th>Type of Work</th>
+                                    <th>Duration (min)</th>
+                                    <th>Delay (min)</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Record</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="editModalBody">
+                    <!-- Form will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div class="modal fade" id="viewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Record Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="viewModalBody">
+                    <!-- Details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for restore -->
+    <input type="file" id="restoreFileInput" style="display: none;" accept=".json">
+
+    <!-- Loading Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="loadingToast" class="toast align-items-center bg-info text-white" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-spinner fa-spin me-2"></i><span id="toastMessage">Processing...</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SheetJS for Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Chart.js for Dashboard -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <!-- Custom Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/validation.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/excel.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed'));
+        }
+    </script>
+</body>
+</html>
